@@ -17,5 +17,10 @@ namespace Xchangez
         public static readonly string SWAGGER_DESCRIPTION = "Web API para aplicación Xchangez";
         public static readonly string SWAGGER_ENDP_URL_DEFAULT = $"/swagger/{SWAGGER_VERSION}/swagger.json";
         public static readonly string SWAGGER_ENDP_NAME_DEFAULT = APP_NAME_VERSION;
+
+        /// <summary>
+        /// Expiración de token en minutos
+        /// </summary>
+        public static readonly int C_AUTH_EXPIRACION_TOKEN = 60;
     }
 }

@@ -41,12 +41,12 @@ namespace Xchangez
         public void ConfigureServices(IServiceCollection services)
         {
             // --------------------------------------------------
-            // configuración inicial autómatica
+            // configuración inicial autómatica (configuración por defecto ya incluida al crear un proyecto)
             // --------------------------------------------------
             services.AddControllers();
 
             // --------------------------------------------------
-            // configurando sql con ef core
+            // configurando sql con ef core (el dbcontext es para definir las tablas de la base de datos y ejecutar métodos CRUD)
             // --------------------------------------------------
             services.AddDbContext<XchangezContext>(options =>
             {
@@ -56,12 +56,13 @@ namespace Xchangez
             });
 
             // --------------------------------------------------
-            // agregando swagger
+            // agregando swagger (nos sirve para ver todos los métodos de los controladores en una interfaz gráfica y poder consumirlos)
             // --------------------------------------------------
             AgregarSwagger(services);
 
             // --------------------------------------------------
-            // implementando mapper
+            // implementando mapper https://gavilanch.wordpress.com/2019/03/18/asp-net-core-2-2-objetos-de-transferencia-de-datos-y-automapper/
+            // Ver la clase Helpers/AutoMapperProfiles.cs, aqui se indican los mapeados de las clases abstractas a los DTO
             // --------------------------------------------------
             services.AddAutoMapper(typeof(Startup));
 
@@ -82,6 +83,12 @@ namespace Xchangez
                     b.AllowAnyMethod();
                 });
             });
+
+            // --------------------------------------------------
+            // implementando clase para guardado de archivos
+            // --------------------------------------------------
+            services.AddTransient<IFile, SaveFile>();
+            services.AddHttpContextAccessor();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -101,6 +108,8 @@ namespace Xchangez
             }
 
             app.UseHttpsRedirection();
+
+            app.UseStaticFiles(); // * para poder acceder a las imagenes del servidor local
 
             app.UseRouting();
 
@@ -138,7 +147,9 @@ namespace Xchangez
                     Scheme = "Bearer",
                     BearerFormat = "JWT",
                     In = ParameterLocation.Header,
-                    Description = "JWT Autorización encabezado usando el esquema Bearer. \r\n\r\n Ingresa 'Bearer' [space] y luego el token generado.\r\n\r\nEjemplo: \"Bearer <tokenHD>\"",
+                    Description = "JWT Autorización encabezado usando el esquema Bearer. \r\n\r\n Ingresa 'Bearer' [space] y luego el token generado " +
+                    "(el token se genera al logearse)." +
+                    "\r\n\r\nEjemplo: \"Bearer aqui_va_el_token\"",
                 });
 
                 o.AddSecurityRequirement(new OpenApiSecurityRequirement

@@ -9,6 +9,10 @@ namespace Xchangez.Models
         public int Id { get; set; }
 
         [Required(AllowEmptyStrings = false)]
+        [Column(TypeName = "VARCHAR(25)")]
+        public string Nick { get; set; }
+
+        [Required(AllowEmptyStrings = false)]
         [Column(TypeName = "VARCHAR(50)")]
         public string Nombre { get; set; }
 
@@ -25,5 +29,15 @@ namespace Xchangez.Models
         public string Correo { get; set; }
 
         public DateTime? FechaNacimiento { get; set; }
+
+        [Column(TypeName = "VARCHAR(250)")]
+        public string RutaImagenAvatar { get; set; }
+
+        [Column(TypeName = "VARCHAR(250)")]
+        public string RutaImagenPortada { get; set; }
+
+        public float? Valoracion { get; set; }
+
+        public bool? EsPrivado { get; set; }
     }
 }

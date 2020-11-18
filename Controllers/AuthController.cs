@@ -24,7 +24,7 @@ namespace Xchangez.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)] // esto indica que necesita autorización por token
     public class AuthController : ControllerBase
     {
         private readonly IRepository<Usuario, UsuarioDTO> Repository;
@@ -76,23 +76,26 @@ namespace Xchangez.Controllers
         /// <summary>
         /// Crea un usuario en la base de datos
         /// </summary>
-        /// <param name="usuario">Datos del usuario a crear</param>
-        /// <returns>El usuario creado</returns>
+        /// <param name="usuario">DTO del usuario a crear</param>
+        /// <returns>El usuario creado junto a su ID</returns>
         [HttpPost("Create")]
-        [AllowAnonymous]
+        [AllowAnonymous] // permite la consulta de la accion aunque el controlador pida token
         public async Task<ActionResult> Create([FromBody] UsuarioDTO usuario)
         {
             try
             {
+                // creamos un objeto de la tabla Usuario desde UsuarioDTO
                 Usuario nuevo = new Usuario()
                 {
                     Nombre = usuario.Nombre,
                     Apellido = usuario.Apellido,
                     Correo = usuario.Correo,
                     Password = usuario.Password,
+                    Nick= string.Empty,
                     FechaNacimiento = usuario.FechaNacimiento
                 };
 
+                // verificamos si esta duplicado
                 UsuarioDTO usuarioDuplicado = (await Repository.GetAsync(n => n.Correo == usuario.Correo)).FirstOrDefault();
 
                 if (usuarioDuplicado != null)
@@ -100,9 +103,11 @@ namespace Xchangez.Controllers
                     return BadRequest("El correo proporcionado ya esta en uso");
                 }
 
+                // si no esta duplicado creamos el nuevo usuario y con commit guardamos cambios
                 await Repository.CreateAsync(nuevo);
                 await Repository.Commit();
 
+                // retornamos el usuario con su nuevo id
                 return new CreatedAtRouteResult("GetUsuario", new
                 {
                     id = nuevo.Id
@@ -120,7 +125,7 @@ namespace Xchangez.Controllers
         /// <param name="usuario">Usuario que se logeara</param>
         /// <returns>Token con la información del usuario</returns>
         [HttpPost("Login")]
-        [AllowAnonymous]
+        [AllowAnonymous] // permite la consulta de la accion aunque el controlador pida token
         public async Task<ActionResult<UserToken>> Login([FromBody] UserInfo usuario)
         {
             try
@@ -132,7 +137,8 @@ namespace Xchangez.Controllers
                     return BadRequest("El usuario y/o contraseña no coinciden");
                 }
 
-                return BuildToken(nodo, DateTime.Now.AddMinutes(5));
+                // si las credenciales fueron correctas regresamos su token
+                return BuildToken(nodo, DateTime.Now.AddMinutes(Constantes.C_AUTH_EXPIRACION_TOKEN));
             }
             catch (Exception ex)
             {

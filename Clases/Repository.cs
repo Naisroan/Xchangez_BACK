@@ -64,7 +64,7 @@ namespace Xchangez.Clases
 
         public async Task<List<N>> GetAsync()
         {
-            return Mapper.Map<List<N>>(await Context.Set<T>().ToListAsync());
+            return Mapper.Map<List<N>>(await Context.Set<T>().AsNoTracking().ToListAsync());
         }
 
         public async Task<List<N>> GetAsync(Expression<Func<T, bool>> where = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string properties = "")
@@ -73,21 +73,21 @@ namespace Xchangez.Clases
 
             if (where != null)
             {
-                query = query.Where(where);
+                query = query.AsNoTracking().Where(where);
             }
 
             foreach (var prop in properties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                query = query.Include(prop);
+                query = query.AsNoTracking().Include(prop);
             }
 
             if (orderBy != null)
             {
-                return Mapper.Map<List<N>>(await orderBy(query).ToListAsync());
+                return Mapper.Map<List<N>>(await orderBy(query).AsNoTracking().ToListAsync());
             }
             else
             {
-                return Mapper.Map<List<N>>(await query.ToListAsync());
+                return Mapper.Map<List<N>>(await query.AsNoTracking().ToListAsync());
             }
         }
 

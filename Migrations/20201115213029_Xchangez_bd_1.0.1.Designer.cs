@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Xchangez;
 
 namespace Xchangez.Migrations
 {
     [DbContext(typeof(XchangezContext))]
-    partial class XchangezContextModelSnapshot : ModelSnapshot
+    [Migration("20201115213029_Xchangez_bd_1.0.1")]
+    partial class Xchangez_bd_101
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
