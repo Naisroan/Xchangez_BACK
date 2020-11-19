@@ -22,6 +22,12 @@ namespace Xchangez.Models
 
         public int Estado { get; set; }
 
+        public bool EsTrueque { get; set; }
+
+        public int Visitas { get; set; }
+
+        public bool Activo { get; set; }
+
         public DateTime FechaAlta { get; set; }
 
         public DateTime? FechaModificacion { get; set; }
