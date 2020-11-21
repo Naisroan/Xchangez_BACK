@@ -16,5 +16,7 @@ namespace Xchangez.Models
 
         [Required]
         public int Cantidad { get; set; }
+
+        public DateTime FechaAlta { get; set; }
     }
 }

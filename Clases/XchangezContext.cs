@@ -66,5 +66,7 @@ namespace Xchangez
         public DbSet<ObjetoLista> ObjetosListas { get; set; }
 
         public DbSet<Publicacion> Publicaciones { get; set; }
+
+        public DbSet<Valoracion> Valoraciones { get; set; }
     }
 }

@@ -14,5 +14,7 @@ namespace Xchangez.DTOs
         public int IdUsuarioValorado { get; set; }
 
         public int Cantidad { get; set; }
+
+        public DateTime FechaAlta { get; set; }
     }
 }

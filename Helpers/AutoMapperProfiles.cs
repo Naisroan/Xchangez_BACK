@@ -20,6 +20,7 @@ namespace Xchangez.Helpers
             CreateMap<Lista, ListaDTO>().ReverseMap();
             CreateMap<Grupo, GrupoDTO>().ReverseMap();
             CreateMap<Comentario, ComentarioDTO>().ReverseMap();
+            CreateMap<Valoracion, ValoracionDTO>().ReverseMap();
         }
     }
 }
