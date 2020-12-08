@@ -13,6 +13,8 @@ namespace Xchangez.Models
 
         public string Nombre { get; set; }
 
+        public string Descripcion { get; set; }
+
         public bool EsPublico { get; set; }
 
         public List<ObjetoListaDTO> Objetos { get; set; }

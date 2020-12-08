@@ -36,6 +36,7 @@ namespace Xchangez.Controllers
         /// <param name="id">Id de la valoración a obtener</param>
         /// <returns>Valoracion</returns>
         [HttpGet("{id:int}", Name = "GetValoracion")]
+        [AllowAnonymous]
         public async Task<ActionResult<ValoracionDTO>> Get(int id)
         {
             try
@@ -61,6 +62,7 @@ namespace Xchangez.Controllers
         /// <param name="id">Id del usuario</param>
         /// <returns>Lista valoraciones hecha a un usuario</returns>
         [HttpGet("GetValoracionesByIdUsuarioValorado/{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<ValoracionDTO>>> GetValoracionesByIdUsuarioValorado(int id)
         {
             try
@@ -73,7 +75,10 @@ namespace Xchangez.Controllers
                     return NotFound("El usuario no ha sido encontrado");
                 }
 
-                return await Repository.GetAsync(n => n.IdUsuarioValorado == id);
+                var valoraciones = await Repository.GetAsync(n => n.IdUsuarioValorado == id);
+                await LlenarInformacionExtra(valoraciones);
+
+                return valoraciones;
             }
             catch (Exception ex)
             {
@@ -87,6 +92,7 @@ namespace Xchangez.Controllers
         /// <param name="id">Id del usuario</param>
         /// <returns>Lista de valoraciones realizada a un usuario</returns>
         [HttpGet("GetValoracionesByIdUsuario/{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<ValoracionDTO>>> GetValoracionesByIdUsuario(int id)
         {
             try
@@ -99,7 +105,10 @@ namespace Xchangez.Controllers
                     return NotFound("El usuario no ha sido encontrado");
                 }
 
-                return await Repository.GetAsync(n => n.IdUsuario == id);
+                var valoraciones = await Repository.GetAsync(n => n.IdUsuario == id);
+                await LlenarInformacionExtra(valoraciones);
+
+                return valoraciones;
             }
             catch (Exception ex)
             {
@@ -113,6 +122,7 @@ namespace Xchangez.Controllers
         /// <param name="id">Id del usuario</param>
         /// <returns>Promedio de valoración</returns>
         [HttpGet("GetPromedioByIdUsuario/{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<double>> GetPromedioByIdUsuario(int id)
         {
             try
@@ -181,6 +191,61 @@ namespace Xchangez.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Verifica si el usuario autenticado ya a valorado a un usuario
+        /// </summary>
+        /// <param name="id">Id del usuario que se verificará si ya fue valorado o no</param>
+        /// <returns>La valoracion</returns>
+        [HttpGet("YaFueValorado/{id:int}")]
+        public async Task<ActionResult<bool>> GetYaFueValorado(int id)
+        {
+            try
+            {
+                // obtenemos el usuario autenticado (mediante token)
+                Usuario authUser = await Fun.GetAuthUser(Repository.GetContext(), User);
+
+                if (authUser == null)
+                {
+                    return NotFound("El usuario autenticado no existe o no se logró obtener su información");
+                }
+
+                // obtenemos al usuario valorado
+                UsuarioDTO usuario = (await RepositoryUsuario.GetAsync(n => n.Id == id)).FirstOrDefault();
+
+                if (usuario == null)
+                {
+                    return NotFound("El usuario a valorar no existe");
+                }
+
+                var valoraciones = await Repository.GetAsync(n => n.IdUsuario == authUser.Id && n.IdUsuarioValorado == usuario.Id);
+
+                return valoraciones.Count > 0;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        private async Task LlenarInformacionExtra(List<ValoracionDTO> valoraciones)
+        {
+            if (valoraciones == null || valoraciones.Count <= 0)
+            {
+                return;
+            }
+
+            foreach (ValoracionDTO valoracion in valoraciones)
+            {
+                UsuarioDTO usuario = (await RepositoryUsuario.GetAsync(n => n.Id == valoracion.IdUsuario)).FirstOrDefault();
+
+                if (usuario != null)
+                {
+                    valoracion.NombreCompleto = $"{usuario.Nombre} {usuario.Apellido}";
+                    valoracion.RutaImagenAvatar = usuario.RutaImagenAvatar;
+                }
             }
         }
     }

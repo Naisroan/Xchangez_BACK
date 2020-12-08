@@ -8,6 +8,8 @@ namespace Xchangez.DTOs
     {
         public int Id { get; set; }
 
+        public string Nick { get; set; }
+
         public string Nombre { get; set; }
 
         public string Apellido { get; set; }
@@ -17,5 +19,17 @@ namespace Xchangez.DTOs
         public string Correo { get; set; }
 
         public DateTime? FechaNacimiento { get; set; }
+
+        public string RutaImagenAvatar { get; set; }
+
+        public string RutaImagenPortada { get; set; }
+
+        public float? Valoracion { get; set; }
+
+        public bool? EsPrivado { get; set; }
+
+        public int CantidadSeguidores { get; set; }
+
+        public int CantidadSeguidos { get; set; }
     }
 }

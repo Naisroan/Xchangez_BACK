@@ -87,6 +87,7 @@ namespace Xchangez.Controllers
         /// <param name="id">Id de la lista a obtener</param>
         /// <returns>Lista</returns>
         [HttpGet("{id:int}", Name = "GetLista")]
+        [AllowAnonymous]
         public async Task<ActionResult<ListaDTO>> Get(int id)
         {
             try
@@ -113,11 +114,15 @@ namespace Xchangez.Controllers
         /// </summary>
         /// <returns>Lista de listas de un usuario</returns>
         [HttpGet("GetByIdUsuario/{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<ListaDTO>>> GetByIdUsuario(int id)
         {
             try
             {
-                var lists = await Repository.GetAsync(n => n.IdUsuario == id);
+                Usuario usuario = await Fun.GetAuthUser(Repository.GetContext(), User);
+                bool incluirPrivadas = usuario != null && usuario.Id == id;
+
+                var lists = await Repository.GetAsync(n => n.IdUsuario == id && (n.EsPublico || incluirPrivadas));
 
                 foreach (var lista in lists)
                 {
@@ -139,7 +144,7 @@ namespace Xchangez.Controllers
         /// <param name="nodo">Lista en si que se modificará</param>
         /// <returns>Estado de success 204</returns>
         [HttpPost]
-        public async Task<ActionResult> Put(int id, [FromForm] ListaDTO nodo)
+        public async Task<ActionResult> Put(int id, [FromBody] ListaDTO nodo)
         {
             try
             {
@@ -160,6 +165,32 @@ namespace Xchangez.Controllers
                 // actualizamos y guardamos
                 Repository.Update(lista);
                 await Repository.Commit();
+
+                // borramos los objetos
+                List<ObjetoListaDTO> objetoListaDTOs = await RepositoryObjeto.GetAsync(n => n.IdLista == lista.Id);
+
+                if (objetoListaDTOs != null && objetoListaDTOs.Count > 0)
+                {
+                    foreach (ObjetoListaDTO objetoListaDTO in objetoListaDTOs)
+                    {
+                        ObjetoLista objeto = RepositoryObjeto.GetMapper().Map<ObjetoLista>(objetoListaDTO);
+                        RepositoryObjeto.Delete(objeto);
+                    }
+
+                }
+
+                // guardamos los objetos si es que tiene
+                if (nodo.Objetos != null && nodo.Objetos.Count > 0)
+                {
+                    foreach (ObjetoListaDTO objeto in nodo.Objetos)
+                    {
+                        objeto.IdLista = lista.Id;
+                        await RepositoryObjeto.CreateAsync(RepositoryObjeto.GetMapper().Map<ObjetoLista>(objeto));
+                    }
+
+                }
+
+                await RepositoryObjeto.Commit();
 
                 // retornamos 0 contenido pero sastifactorio
                 return NoContent();

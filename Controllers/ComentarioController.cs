@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Xchangez.DTOs;
 using Xchangez.Interfaces;
 using Xchangez.Models;
 
@@ -20,13 +21,16 @@ namespace Xchangez.Controllers
         private readonly IConfiguration Configuration;
         private readonly IRepository<Comentario, ComentarioDTO> Repository;
         private readonly IRepository<Publicacion, PublicacionDTO> RepositoryPublicacion;
+        private readonly IRepository<Usuario, UsuarioDTO> RepositoryUsuario;
 
         public ComentarioController(IConfiguration configuration, IRepository<Comentario, ComentarioDTO> repository,
-            IRepository<Publicacion, PublicacionDTO> repositoryPublicacion)
+            IRepository<Publicacion, PublicacionDTO> repositoryPublicacion,
+            IRepository<Usuario, UsuarioDTO> repositoryUsuario)
         {
             Configuration = configuration;
             Repository = repository;
             RepositoryPublicacion = repositoryPublicacion;
+            RepositoryUsuario = repositoryUsuario;
         }
 
         /// <summary>
@@ -137,6 +141,7 @@ namespace Xchangez.Controllers
         /// <param name="id">Id del comentario a obtener</param>
         /// <returns>Comentario</returns>
         [HttpGet("{id:int}", Name = "GetComentario")]
+        [AllowAnonymous]
         public async Task<ActionResult<ComentarioDTO>> Get(int id)
         {
             try
@@ -146,6 +151,14 @@ namespace Xchangez.Controllers
                 if (nodo == null)
                 {
                     return NotFound("Comentario no encontrado"); // retorna un codigo de error 404
+                }
+
+                UsuarioDTO usuarioComentario = (await RepositoryUsuario.GetAsync(n => n.Id == nodo.IdUsuario)).FirstOrDefault();
+
+                if (usuarioComentario != null)
+                {
+                    nodo.NombreCompleto = $"{usuarioComentario.Nombre} {usuarioComentario.Apellido}";
+                    nodo.RutaImagenAvatar = usuarioComentario.RutaImagenAvatar;
                 }
 
                 return nodo;
@@ -186,11 +199,19 @@ namespace Xchangez.Controllers
         /// <param name="id">Id de la publicación</param>
         /// <returns>Lista de comentarios de la publicación indicada</returns>
         [HttpGet("GetComentariosByIdPublicacion/{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<ComentarioDTO>>> GetComentariosByIdPublicacion(int id)
         {
             try
             {
-                return await Repository.GetAsync(n => n.IdPublicacion == id);
+                var comentarios = await Repository.GetAsync(n => n.IdPublicacion == id && n.IdComentarioPadre == 0);
+
+                foreach (ComentarioDTO comentario in comentarios)
+                {
+                    await LlenarComentarios(comentario);
+                }
+
+                return comentarios;
             }
             catch (Exception ex)
             {
@@ -204,15 +225,41 @@ namespace Xchangez.Controllers
         /// <param name="id">Id del comentario</param>
         /// <returns>Lista de comentarios del comentario indicado</returns>
         [HttpGet("GetComentariosByIdComentario/{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<ComentarioDTO>>> GetComentariosByIdComentario(int id)
         {
             try
             {
-                return await Repository.GetAsync(n => n.IdComentarioPadre == id);
+                var comentarios = await Repository.GetAsync(n => n.IdComentarioPadre == id);
+
+                foreach (ComentarioDTO comentario in comentarios)
+                {
+                    await LlenarComentarios(comentario);
+                }
+
+                return comentarios;
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        private async Task LlenarComentarios(ComentarioDTO comentario)
+        {
+            UsuarioDTO usuarioComentario = (await RepositoryUsuario.GetAsync(n => n.Id == comentario.IdUsuario)).FirstOrDefault();
+
+            if (usuarioComentario != null)
+            {
+                comentario.NombreCompleto = $"{usuarioComentario.Nombre} {usuarioComentario.Apellido}";
+                comentario.RutaImagenAvatar = usuarioComentario.RutaImagenAvatar;
+            }
+
+            comentario.Comentarios = await Repository.GetAsync(n => n.IdComentarioPadre == comentario.Id);
+
+            foreach (ComentarioDTO com in comentario.Comentarios)
+            {
+                await LlenarComentarios(com);
             }
         }
     }

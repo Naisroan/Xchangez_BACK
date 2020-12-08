@@ -12,11 +12,14 @@
     <StartupObject>Xchangez.Program</StartupObject>
     <Authors>Ian Alexandro</Authors>
     <Company>Xchangez</Company>
+    <UserSecretsId>f83cf09a-436e-4c6a-a7cc-4663f75741af</UserSecretsId>
+    <ApplicationInsightsResourceId>/subscriptions/e110b22a-b9bd-4c90-a810-c90f19e578ca/resourcegroups/XchangezAPI_RG/providers/Microsoft.Insights/components/Xchangez</ApplicationInsightsResourceId>
     
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.15.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.8" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="3.1.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.8" />
@@ -29,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\" />
+    <Folder Include="wwwroot\multimedia\" />
   </ItemGroup>
 
 

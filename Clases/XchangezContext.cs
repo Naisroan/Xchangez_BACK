@@ -68,5 +68,7 @@ namespace Xchangez
         public DbSet<Publicacion> Publicaciones { get; set; }
 
         public DbSet<Valoracion> Valoraciones { get; set; }
+
+        public DbSet<Seguidor> Seguidores { get; set; }
     }
 }

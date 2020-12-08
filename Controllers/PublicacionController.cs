@@ -2,12 +2,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Xchangez.DTOs;
 using Xchangez.Interfaces;
 using Xchangez.Models;
 
@@ -19,17 +22,19 @@ namespace Xchangez.Controllers
     public class PublicacionController : ControllerBase
     {
         // aqui es donde se guardan los archivos de una publicación, {0} es el id de la publicacion
-        private const string RUTA_ARCHIVOS_MULTIMEDIA = "multimedia/{0}";
+        private const string RUTA_ARCHIVOS_MULTIMEDIA = "multimedia/publicaciones/{0}";
 
         private readonly IRepository<Publicacion, PublicacionDTO> Repository;
         private readonly IRepository<Comentario, ComentarioDTO> RepositoryComentarios;
         private readonly IRepository<Multimedia, MultimediaDTO> RepositoryMultimedia;
+        private readonly IRepository<Usuario, UsuarioDTO> RepositoryUsuario;
         private readonly IFile SaveFile;
         private readonly IConfiguration Configuration;
 
         public PublicacionController(IConfiguration configuration, IRepository<Publicacion, PublicacionDTO> repository, 
             IRepository<Comentario, ComentarioDTO> repositoryComentarios,
             IRepository<Multimedia, MultimediaDTO> repositoryMultimedia,
+            IRepository<Usuario, UsuarioDTO> repositoryUsuario,
             IFile saveFile)
         {
             Configuration = configuration;
@@ -37,6 +42,7 @@ namespace Xchangez.Controllers
             Repository = repository;
             RepositoryComentarios = repositoryComentarios;
             RepositoryMultimedia = repositoryMultimedia;
+            RepositoryUsuario = repositoryUsuario;
 
             SaveFile = saveFile;
         }
@@ -45,12 +51,173 @@ namespace Xchangez.Controllers
         /// Obtiene todas las publicaciones
         /// </summary>
         /// <returns>Lista de publicaciones</returns>
-        [HttpGet("Publicaciones")]
-        public async Task<ActionResult<List<PublicacionDTO>>> Get()
+        [HttpGet("Publicaciones/{cantidad:int?}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<PublicacionDTO>>> GetAll(int cantidad = 20)
         {
             try
             {
-                return await Repository.GetAsync();
+                var publicaciones = (await Repository.GetAsync(n => !n.EsBorrador)).Take(cantidad).ToList();
+
+                foreach (PublicacionDTO publicacion in publicaciones)
+                {
+                    string imagesPattern = @"(.*\.)(gif|jpe?g|tiff?|png|webp|bmp)$";
+
+                    MultimediaDTO multimedia = (await RepositoryMultimedia.GetAsync(n => n.IdPublicacion == publicacion.Id))
+                        .FirstOrDefault(n => Regex.IsMatch(n.Extension, imagesPattern));
+
+                    publicacion.Thumbnail = multimedia != null && !string.IsNullOrEmpty(multimedia.Ruta) ? multimedia.Ruta : null;
+                }
+
+                return publicaciones;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todas las publicaciones mas relevantes
+        /// </summary>
+        /// <returns>Lista de publicaciones</returns>
+        [HttpGet("PublicacionesRelevantes/{cantidad:int?}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<PublicacionDTO>>> GetMasRelevantes(int cantidad = 20)
+        {
+            try
+            {
+                var publicaciones = (await Repository.GetAsync(n => !n.EsBorrador, n => n.OrderByDescending(m => m.Visitas))).Take(cantidad).ToList();
+
+                foreach (PublicacionDTO publicacion in publicaciones)
+                {
+                    string imagesPattern = @"(.*\.)(gif|jpe?g|tiff?|png|webp|bmp)$";
+
+                    MultimediaDTO multimedia = (await RepositoryMultimedia.GetAsync(n => n.IdPublicacion == publicacion.Id))
+                        .FirstOrDefault(n => Regex.IsMatch(n.Extension, imagesPattern));
+
+                    publicacion.Thumbnail = multimedia != null && !string.IsNullOrEmpty(multimedia.Ruta) ? multimedia.Ruta : null;
+                }
+
+                return publicaciones;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todas las publicaciones mas recientes
+        /// </summary>
+        /// <returns>Lista de publicaciones</returns>
+        [HttpGet("PublicacionesRecientes/{cantidad:int?}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<PublicacionDTO>>> GetMasRecientes(int cantidad = 20)
+        {
+            try
+            {
+                var publicaciones = (await Repository.GetAsync(n => !n.EsBorrador, n => n.OrderByDescending(m => m.FechaAlta))).Take(cantidad).ToList();
+
+                foreach (PublicacionDTO publicacion in publicaciones)
+                {
+                    string imagesPattern = @"(.*\.)(gif|jpe?g|tiff?|png|webp|bmp)$";
+
+                    MultimediaDTO multimedia = (await RepositoryMultimedia.GetAsync(n => n.IdPublicacion == publicacion.Id))
+                        .FirstOrDefault(n => Regex.IsMatch(n.Extension, imagesPattern));
+
+                    publicacion.Thumbnail = multimedia != null && !string.IsNullOrEmpty(multimedia.Ruta) ? multimedia.Ruta : null;
+                }
+
+                return publicaciones;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todas las publicaciones por un usuario, si coincide con el autenticado incluye borradores
+        /// </summary>
+        /// <returns>Lista de publicaciones</returns>
+        [HttpGet("PublicacionesByIdUsuario/{id:int}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<PublicacionDTO>>> GetByIdUsuario(int id)
+        {
+            try
+            {
+                Usuario usuario = await Fun.GetAuthUser(Repository.GetContext(), User);
+                UsuarioDTO usuarioAutor = (await RepositoryUsuario.GetAsync(n => n.Id == id)).FirstOrDefault();
+
+                if (usuarioAutor == null)
+                {
+                    return new List<PublicacionDTO>();
+                }
+
+                if (usuarioAutor.EsPrivado.GetValueOrDefault(false) && (usuario == null || usuario.Id != usuarioAutor.Id))
+                {
+                    return new List<PublicacionDTO>();
+                }
+
+                bool incluirBorradores = usuario != null && usuario.Id == id;
+                var publicaciones = await Repository.GetAsync(n => n.IdUsuario == id && (!n.EsBorrador || incluirBorradores));
+
+                foreach (PublicacionDTO publicacion in publicaciones)
+                {
+                    string imagesPattern = @"(.*\.)(gif|jpe?g|tiff?|png|webp|bmp)$";
+
+                    MultimediaDTO multimedia = (await RepositoryMultimedia.GetAsync(n => n.IdPublicacion == publicacion.Id))
+                        .FirstOrDefault(n => Regex.IsMatch(n.Extension, imagesPattern));
+
+                    publicacion.Thumbnail = multimedia != null && !string.IsNullOrEmpty(multimedia.Ruta) ? multimedia.Ruta : null;
+                }
+
+                return publicaciones;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todas las publicaciones de los usuarios que sigue el usuario autenticado
+        /// </summary>
+        /// <returns>Lista de publicaciones</returns>
+        [HttpGet("GetByUsuariosSeguidos")]
+        public async Task<ActionResult<List<PublicacionDTO>>> GetByUsuariosSeguidos()
+        {
+            try
+            {
+                Usuario usuario = await Fun.GetAuthUser(Repository.GetContext(), User);
+
+                if (usuario == null)
+                {
+                    return BadRequest("El usuario no esta autenticado");
+                }
+
+                XchangezContext cntx = Repository.GetContext();
+
+                var lista = await (from P in cntx.Publicaciones
+                            join S in cntx.Seguidores on P.IdUsuario equals S.IdUsuarioSeguido
+                            where S.IdUsuarioSeguidor == usuario.Id
+                            && !P.EsBorrador
+                            select P).ToListAsync();
+
+                List<PublicacionDTO> publicaciones = Repository.GetMapper().Map<List<PublicacionDTO>>(lista);
+
+                foreach (PublicacionDTO publicacion in publicaciones)
+                {
+                    string imagesPattern = @"(.*\.)(gif|jpe?g|tiff?|png|webp|bmp)$";
+
+                    MultimediaDTO multimedia = (await RepositoryMultimedia.GetAsync(n => n.IdPublicacion == publicacion.Id))
+                        .FirstOrDefault(n => Regex.IsMatch(n.Extension, imagesPattern));
+
+                    publicacion.Thumbnail = multimedia != null && !string.IsNullOrEmpty(multimedia.Ruta) ? multimedia.Ruta : null;
+                }
+
+                return publicaciones;
             }
             catch (Exception ex)
             {
@@ -64,6 +231,7 @@ namespace Xchangez.Controllers
         /// <param name="id">Id de la publicación que se quiere obtener</param>
         /// <returns>Publicación</returns>
         [HttpGet("{id:int}", Name = "GetPublicacion")]
+        [AllowAnonymous]
         public async Task<ActionResult<PublicacionDTO>> Get(int id)
         {
             try
@@ -74,6 +242,17 @@ namespace Xchangez.Controllers
                 {
                     return NotFound("Publicación no encontrada"); // retorna un codigo de error 404
                 }
+
+                nodo.Comentarios = await RepositoryComentarios.GetAsync(n => n.IdPublicacion == nodo.Id && n.IdComentarioPadre == 0);
+
+                foreach (ComentarioDTO comentario in nodo.Comentarios)
+                {
+                    await LlenarComentarios(comentario);
+                }
+
+                nodo.Visitas = nodo.Visitas + 1;
+                Repository.Update(Repository.GetMapper().Map<Publicacion>(nodo));
+                await Repository.Commit();
 
                 return nodo;
             }
@@ -204,11 +383,19 @@ namespace Xchangez.Controllers
                 Repository.Update(publicacion);
                 await Repository.Commit();
 
+                PublicacionDTO publicacionDTO = Repository.GetMapper().Map<PublicacionDTO>(publicacion);
+                string imagesPattern = @"(.*\.)(gif|jpe?g|tiff?|png|webp|bmp)$";
+
+                MultimediaDTO multimedia = (await RepositoryMultimedia.GetAsync(n => n.IdPublicacion == publicacion.Id))
+                    .FirstOrDefault(n => Regex.IsMatch(n.Extension, imagesPattern));
+
+                publicacionDTO.Thumbnail = multimedia != null && !string.IsNullOrEmpty(multimedia.Ruta) ? multimedia.Ruta : null;
+
                 // retornamos la publicacion con su nuevo id
                 return new CreatedAtRouteResult("GetPublicacion", new
                 {
                     id = publicacion.Id
-                }, Repository.GetMapper().Map<PublicacionDTO>(publicacion));
+                }, publicacionDTO);
             }
             catch (Exception ex)
             {
@@ -272,7 +459,7 @@ namespace Xchangez.Controllers
         /// <param name="nodo">Publicacion en si que se modificará</param>
         /// <returns>Estado de success 204</returns>
         [HttpPost]
-        public async Task<ActionResult> Put(int id, [FromForm] PublicacionDTO nodo)
+        public async Task<ActionResult> Put(int id, [FromBody] PublicacionDTO nodo)
         {
             try
             {
@@ -289,8 +476,44 @@ namespace Xchangez.Controllers
 
                 publicacion.Id = id;
                 publicacion.IdUsuario = nodoDB.IdUsuario;
-                publicacion.FechaAlta = nodoDB.FechaAlta;
                 publicacion.FechaModificacion = DateTime.Now;
+
+                // actualizamos y guardamos
+                Repository.Update(publicacion);
+                await Repository.Commit();
+
+                // retornamos 0 contenido pero sastifactorio
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Agrega una visita a una publicación
+        /// </summary>
+        /// <param name="id">Id de la publicación</param>
+        /// <returns>Estado de success 204</returns>
+        [HttpPost("AgregarUnaVisita")]
+        [AllowAnonymous]
+        public async Task<ActionResult> Put(int id)
+        {
+            try
+            {
+                // se consulta a la bd el nodo a editar y valida que existe
+                var nodoDB = (await Repository.GetAsync(n => n.Id == id)).FirstOrDefault();
+
+                if (nodoDB == null)
+                {
+                    return NotFound("No se encontró la publicación a modificar"); // retorna un codigo de error 404
+                }
+
+                // se obtiene 'edit' que es el nodo DTO mapeado a su clase abstracta
+                Publicacion publicacion = Repository.GetMapper().Map<Publicacion>(nodoDB);
+
+                publicacion.Visitas += 1;
 
                 // actualizamos y guardamos
                 Repository.Update(publicacion);
@@ -360,6 +583,12 @@ namespace Xchangez.Controllers
             try
             {
                 PublicacionDTO dto = (await Repository.GetAsync(n => n.Id == id)).FirstOrDefault();
+
+                if (dto == null)
+                {
+                    return NotFound("No se encontró la publicación a modificar"); // retorna un codigo de error 404
+                }
+
                 Publicacion nodo = Repository.GetMapper().Map<Publicacion>(dto);
 
                 // obtenemos comentarios de la publicación
@@ -408,11 +637,55 @@ namespace Xchangez.Controllers
         }
 
         /// <summary>
+        /// Elimina las multimedias de una publicación
+        /// </summary>
+        /// <param name="id">Id de la publicación</param>
+        /// <returns>Estado de success 204</returns>
+        [HttpDelete("DeleteMultimediasByIdPublicacion/{id:int}")]
+        public async Task<ActionResult> DeleteMultimediasByIdPublicacion(int id)
+        {
+            try
+            {
+                PublicacionDTO dto = (await Repository.GetAsync(n => n.Id == id)).FirstOrDefault();
+
+                if (dto == null)
+                {
+                    return NotFound("No se encontró la publicación a modificar"); // retorna un codigo de error 404
+                }
+
+                // obtenemos archivos de la publicación
+                List<MultimediaDTO> multimediasDTOs = (await RepositoryMultimedia.GetAsync(n => n.IdPublicacion == id));
+
+                // los eliminamos
+                if (multimediasDTOs != null && multimediasDTOs.Count > 0)
+                {
+                    foreach (MultimediaDTO multimediaDTO in multimediasDTOs)
+                    {
+                        Multimedia multimedia = RepositoryMultimedia.GetMapper().Map<Multimedia>(multimediaDTO);
+                        string directorio = string.Format(RUTA_ARCHIVOS_MULTIMEDIA, dto.Id);
+
+                        await SaveFile.Delete(directorio, multimediaDTO.Ruta);
+                        RepositoryMultimedia.Delete(multimedia);
+                    }
+                }
+
+                await RepositoryMultimedia.Commit();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Obtiene todas los archivos de una publicacion
         /// </summary>
         /// <param name="id">Id de la publicación de donde se quiere obtener los archivos</param>
         /// <returns>Lista de archivos de una publicacion</returns>
         [HttpGet("GetFiles/{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<List<MultimediaDTO>>> GetFiles(int id)
         {
             try
@@ -613,6 +886,24 @@ namespace Xchangez.Controllers
             catch (Exception ex)
             {
                 throw ex;
+            }
+        }
+
+        private async Task LlenarComentarios(ComentarioDTO comentario)
+        {
+            UsuarioDTO usuarioComentario = (await RepositoryUsuario.GetAsync(n => n.Id == comentario.IdUsuario)).FirstOrDefault();
+
+            if (usuarioComentario != null)
+            {
+                comentario.NombreCompleto = $"{usuarioComentario.Nombre} {usuarioComentario.Apellido}";
+                comentario.RutaImagenAvatar = usuarioComentario.RutaImagenAvatar;
+            }
+
+            comentario.Comentarios = await RepositoryComentarios.GetAsync(n => n.IdComentarioPadre == comentario.Id);
+
+            foreach (ComentarioDTO com in comentario.Comentarios)
+            {
+                await LlenarComentarios(com);
             }
         }
     }

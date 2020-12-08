@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Xchangez;
 
 namespace Xchangez.Migrations
 {
     [DbContext(typeof(XchangezContext))]
-    partial class XchangezContextModelSnapshot : ModelSnapshot
+    [Migration("20201201031402_Xchangez_bd_1.0.6")]
+    partial class Xchangez_bd_106
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -226,27 +228,6 @@ namespace Xchangez.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Publicaciones");
-                });
-
-            modelBuilder.Entity("Xchangez.Models.Seguidor", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<DateTime>("FechaAlta")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("IdUsuarioSeguido")
-                        .HasColumnType("int");
-
-                    b.Property<int>("IdUsuarioSeguidor")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Seguidores");
                 });
 
             modelBuilder.Entity("Xchangez.Models.Usuario", b =>

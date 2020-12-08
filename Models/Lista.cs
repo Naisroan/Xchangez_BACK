@@ -15,6 +15,9 @@ namespace Xchangez.Models
         [Column(TypeName = "VARCHAR(100)")]
         public string Nombre { get; set; }
 
+        [Column(TypeName = "VARCHAR(250)")]
+        public string Descripcion { get; set; }
+
         [Required]
         public bool EsPublico { get; set; }
     }

@@ -9,6 +9,7 @@ namespace Xchangez
         public static readonly string APP_NAME_VERSION = $"{APP_NAME} - {APP_VERSION}";
 
         public static readonly string JWT_SECRETKEY_NAME = "SecretKey";
+        public static readonly string JWT_SECRETKEY_VALUE = "_\"asdwda1d8a4sd8w4das8d*w8d*asd@#\"";
 
         public static readonly string STR_CONNECTION_NAME = "Xchangez_connection";
 

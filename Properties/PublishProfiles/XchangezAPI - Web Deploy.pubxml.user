@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Este archivo se usa en el proceso de publicación y empaquetado del proyecto web. Para personalizar el comportamiento de este proceso,
+edite el archivo MSBuild. Visite https://go.microsoft.com/fwlink/?LinkID=208121 para obtener más información. 
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <TimeStampOfAssociatedLegacyPublishXmlFile />
+    <EncryptedPassword>AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAw8qO3LlIoUOKZjPk12jyjwAAAAACAAAAAAAQZgAAAAEAACAAAADr8nXGJHV+X3fMGU1BFJmXj5nl4SaBYOO7eYGlUH3FAQAAAAAOgAAAAAIAACAAAADJxR5V2Sl+6uZ6SKpSAsHIu7uOUrV1klqGZnZVTLzaeYAAAADRe7+QV1tPEpDhg5PSAtZ3TEUIVfiYEYugavLl8/C+vKKBbdOrLE4PPVXSY+llzJS9whtoQDICSqeNOcd5A7u9Eh2GOU0psM6F8+ZX6Ssi5nBlE+Ygc7GgpqLfY4QItbw5dmNpcEkIspK7+2oLFTkU1lhxx7NyKJtwG7teSB+mbkAAAACJrH4BkTUQG1emh9SvYpmogik0bnDwbtyl/Pw63V73U3PhUgkBTWTrmr2dAr8W61VeWPZiv8Fivln+PJTqiyk2</EncryptedPassword>
+  </PropertyGroup>
+  <ItemGroup>
+    <EFMigrations Include="Xchangez.XchangezContext">
+      <Value>Data Source=tcp:xchangezdbserver.database.windows.net,1433%3bInitial Catalog=Xchangez_db%3bUser Id=isolis%40xchangezdbserver%3bPassword=a1234567890A</Value>
+    </EFMigrations>
+  </ItemGroup>
+</Project>

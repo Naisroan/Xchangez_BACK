@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Xchangez.Clases;
+using Xchangez.Helpers;
+using Xchangez.Hubs;
 using Xchangez.Interfaces;
 
 namespace Xchangez
@@ -43,7 +45,11 @@ namespace Xchangez
             // --------------------------------------------------
             // configuración inicial autómatica (configuración por defecto ya incluida al crear un proyecto)
             // --------------------------------------------------
-            services.AddControllers();
+            services.AddControllers(o =>
+            {
+                // esto se agrego manulamente
+                o.Filters.Add(typeof(ErrorFilter));
+            });
 
             // --------------------------------------------------
             // configurando sql con ef core (el dbcontext es para definir las tablas de la base de datos y ejecutar métodos CRUD)
@@ -76,28 +82,47 @@ namespace Xchangez
             // --------------------------------------------------
             services.AddCors(o =>
             {
-                o.AddPolicy("AllowAllHeaders", b =>
-                {
-                    b.AllowAnyOrigin();
-                    b.AllowAnyHeader();
-                    b.AllowAnyMethod();
-                });
+                //o.AddPolicy("AllowAllHeaders", builder => builder
+                //    .WithOrigins("http://127.0.0.1:5500", "http://localhost:62489")
+                //    .AllowAnyMethod()
+                //    .AllowAnyHeader()
+                //    .AllowCredentials());
+
+                // o.AddDefaultPolicy(b => b.SetIsOriginAllowed(_ => true).AllowAnyMethod().AllowAnyHeader().AllowCredentials());
+
+                //o.AddPolicy("AllowAllHeaders", b =>
+                //{
+                //    b.AllowAnyOrigin();
+                //    b.AllowAnyHeader();
+                //    b.AllowAnyMethod();
+                //});
+
+                o.AddDefaultPolicy(b => b.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
             });
+
+            services.AddCors();
 
             // --------------------------------------------------
             // implementando clase para guardado de archivos
             // --------------------------------------------------
             services.AddTransient<IFile, SaveFile>();
             services.AddHttpContextAccessor();
+
+            // --------------------------------------------------
+            // implementando appliocation insights para logs de errores en azure
+            // --------------------------------------------------
+            services.AddApplicationInsightsTelemetry(Configuration["APPINSIGHTS_CONNECTIONSTRING"]);
+
+            // --------------------------------------------------
+            // implementando signal r para mensajes en tiempo real
+            // --------------------------------------------------
+            services.AddSignalR();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             // configurando swagger
             ConfigurarSwagger(app);
-
-            // configurando cors
-            app.UseCors("AllowAllHeaders");
 
             // --------------------------------------------------
             // configuración inicial autómatica (* se agrego manualmente)
@@ -113,6 +138,8 @@ namespace Xchangez
 
             app.UseRouting();
 
+            app.UseCors(); // * configurando cors
+
             app.UseAuthorization();
 
             app.UseAuthentication(); // * habilitamos la autenticacion
@@ -120,6 +147,7 @@ namespace Xchangez
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHub<ChatHub>("/chathub"); // * habilitamos signalr
             });
         }
 
@@ -182,7 +210,9 @@ namespace Xchangez
                 n.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters()
                 {
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Configuration[Constantes.JWT_SECRETKEY_NAME])),
+                    // IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Configuration[Constantes.JWT_SECRETKEY_NAME])),
+                    // se puso hardcodedado porque al publicar el sitio en azure no podia obtener la llave de seguridad
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Constantes.JWT_SECRETKEY_VALUE)),
                     ValidateIssuer = false,
                     ValidateAudience = false
                 };
